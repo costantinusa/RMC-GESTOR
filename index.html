@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#062968">
+<link rel="manifest" href="manifest.webmanifest">
+<title>RMC Gestión</title>
+<style>
+:root{--navy:#062968;--orange:#ff5108;--bg:#f3f6fa;--card:#fff;--ink:#182234;--muted:#6d778a;--line:#dfe5ee;--green:#167a45;--red:#b23434}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(110deg,var(--navy) 0 72%,var(--orange) 72%);color:white;padding:18px 18px 20px;position:sticky;top:0;z-index:3}
+header h1{margin:0;font-size:22px} header p{margin:4px 0 0;font-size:12px;opacity:.9}
+main{max-width:1100px;margin:auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 9px rgba(0,0,0,.04)}
+.kpi span{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:bold} .kpi b{display:block;font-size:22px;margin-top:5px;color:var(--navy)}
+.tabs{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap} button{border:0;border-radius:10px;padding:11px 14px;font-weight:bold;cursor:pointer} .primary{background:var(--navy);color:#fff} .orange{background:var(--orange);color:#fff} .ghost{background:#e9eef6;color:var(--navy)} .danger{background:#fbe9e9;color:var(--red)}
+.formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} label{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:bold;display:block;margin-bottom:5px}
+input,select,textarea{width:100%;border:1px solid #ccd5e2;border-radius:9px;padding:10px;font:14px Arial;background:white} textarea{min-height:70px}
+.full{grid-column:1/-1} .half{grid-column:span 2} .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.tablewrap{overflow:auto} table{width:100%;border-collapse:collapse;min-width:800px} th{background:var(--navy);color:#fff;text-align:left;padding:10px;font-size:12px} td{padding:10px;border-bottom:1px solid var(--line);font-size:13px} .income{color:var(--green);font-weight:bold} .expense{color:var(--red);font-weight:bold}
+.status{font-size:12px;color:var(--muted);margin-top:8px} .hidden{display:none!important}
+@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){main{padding:10px}.grid{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:1fr}.half,.full{grid-column:1} header{position:relative}}
+</style>
+</head>
+<body>
+<div id="authScreen" style="position:fixed;inset:0;background:#f3f6fa;z-index:99;display:flex;align-items:center;justify-content:center;padding:18px">
+ <div class="card" style="width:min(430px,100%);padding:24px">
+  <div style="height:8px;background:linear-gradient(90deg,#062968 0 75%,#ff5108 75%);border-radius:8px;margin-bottom:20px"></div>
+  <h2 style="color:#062968;margin:0 0 5px">RMC Gestión</h2>
+  <p style="color:#6d778a;font-size:13px">Acceso privado y sincronizado</p>
+  <label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="email">
+  <label style="margin-top:12px">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password">
+  <div class="actions"><button class="primary" onclick="login()">Entrar</button><button class="ghost" onclick="signup()">Crear mi acceso</button></div>
+  <div id="authStatus" class="status">La primera vez, crea tu acceso. Después usa la misma cuenta en todos tus dispositivos.</div>
+ </div>
+</div>
+<header><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><h1>RMC Gestión</h1><p>Cobros · gastos · IVA · sincronización entre dispositivos</p></div><button id="logoutBtn" class="ghost" onclick="logout()" style="display:none">Salir</button></div></header>
+<main>
+<section class="grid">
+ <div class="card kpi"><span>Ingresos</span><b id="kIncome">0,00 €</b></div>
+ <div class="card kpi"><span>Gastos</span><b id="kExpense">0,00 €</b></div>
+ <div class="card kpi"><span>Resultado</span><b id="kResult">0,00 €</b></div>
+ <div class="card kpi"><span>IVA a liquidar</span><b id="kVat">0,00 €</b></div>
+</section>
+
+<div class="tabs">
+ <button class="primary" onclick="showForm('ingreso')">+ Nuevo ingreso</button>
+ <button class="orange" onclick="showForm('gasto')">+ Nuevo gasto</button>
+ <button class="ghost" onclick="loadMovements()">Actualizar</button>
+ <button class="ghost" onclick="exportCSV()">Exportar CSV</button>
+</div>
+
+<section class="card hidden" id="formCard">
+ <h3 id="formTitle" style="margin-top:0;color:var(--navy)">Nuevo movimiento</h3>
+ <div class="formgrid">
+  <div><label>Fecha</label><input id="date" type="date"></div>
+  <div><label>Tipo</label><select id="type"><option value="ingreso">Ingreso / Cobro</option><option value="gasto">Gasto / Pago</option></select></div>
+  <div class="half"><label>Cliente / Proveedor</label><input id="party" placeholder="Nombre o empresa"></div>
+  <div class="full"><label>Concepto</label><input id="concept" placeholder="Ej.: Reparación aire acondicionado / compra de material"></div>
+  <div><label>Base imponible €</label><input id="base" inputmode="decimal" value="0,00"></div>
+  <div><label>IVA %</label><select id="vat"><option>21</option><option>10</option><option>4</option><option>0</option><option value="custom">Otro…</option></select></div>
+  <div id="customVatBox" class="hidden"><label>IVA personalizado %</label><input id="customVat" inputmode="decimal" value="21"></div>
+  <div><label>IVA €</label><input id="vatAmount" readonly></div>
+  <div><label>Total €</label><input id="total" readonly></div>
+  <div><label>Forma de cobro / pago</label><select id="payment"><option value="transferencia">Transferencia bancaria</option><option value="tarjeta">Tarjeta crédito/débito</option><option value="efectivo">Efectivo</option><option value="otro">Otro</option></select></div>
+  <div><label>Nº factura / documento</label><input id="documentNo" placeholder="Opcional"></div>
+  <div class="full"><label>Notas</label><textarea id="notes" placeholder="Opcional"></textarea></div>
+ </div>
+ <div class="actions"><button class="ghost" onclick="hideForm()">Cancelar</button><button class="primary" onclick="saveMovement()">Guardar movimiento</button></div>
+ <div id="saveStatus" class="status"></div>
+</section>
+
+<section class="card" style="margin-top:14px">
+ <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+  <h3 style="margin:0;color:var(--navy)">Movimientos</h3>
+  <div style="display:flex;gap:8px">
+   <select id="filterType" onchange="render()"><option value="">Todos</option><option value="ingreso">Ingresos</option><option value="gasto">Gastos</option></select>
+   <input id="filterMonth" type="month" onchange="render()">
+  </div>
+ </div>
+ <div class="tablewrap" style="margin-top:10px">
+ <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Cliente / proveedor</th><th>Concepto</th><th>Base</th><th>IVA</th><th>Total</th><th>Medio</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+ </div>
+ <div id="syncStatus" class="status">Conectando con RMC Cloud…</div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://gbcrptmxxoztuqlslyhl.supabase.co";
+const SUPABASE_KEY="sb_publishable_Y2Ep_DgA9Nw43ZMAuIW9fw_3Gw4QIXj";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let movements=[]; let currentUser=null;
+async function login(){
+ const email=$('authEmail').value.trim(),password=$('authPassword').value;
+ $('authStatus').textContent='Entrando…';
+ const {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(error){$('authStatus').textContent='No se pudo entrar: '+error.message;return}
+ await enterApp(data.user);
+}
+async function signup(){
+ const email=$('authEmail').value.trim(),password=$('authPassword').value;
+ if(password.length<8){$('authStatus').textContent='Utiliza una contraseña de al menos 8 caracteres.';return}
+ $('authStatus').textContent='Creando acceso…';
+ const {data,error}=await sb.auth.signUp({email,password});
+ if(error){$('authStatus').textContent='No se pudo crear: '+error.message;return}
+ if(data.session) await enterApp(data.user);
+ else $('authStatus').textContent='Cuenta creada. Revisa tu correo y confirma el acceso; después pulsa Entrar.';
+}
+async function logout(){await sb.auth.signOut();currentUser=null;movements=[];$('authScreen').style.display='flex';$('logoutBtn').style.display='none'}
+async function enterApp(user){currentUser=user;$('authScreen').style.display='none';$('logoutBtn').style.display='block';await loadMovements()}
+
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(Number(n||0));
+const num=v=>{let s=String(v??'').trim().replace(/\s/g,'').replace(/\./g,'').replace(',','.');let n=Number(s);return Number.isFinite(n)?n:0};
+const fmtText=s=>String(s||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('es-ES').replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
+function vatRate(){return $('vat').value==='custom'?num($('customVat').value):num($('vat').value)}
+function calc(){let b=num($('base').value),v=vatRate();$('vatAmount').value=money(b*v/100);$('total').value=money(b*(1+v/100));}
+$('base').addEventListener('input',calc);$('vat').addEventListener('change',()=>{$('customVatBox').classList.toggle('hidden',$('vat').value!=='custom');calc()});$('customVat').addEventListener('input',calc);
+function showForm(t){$('formCard').classList.remove('hidden');$('type').value=t;$('formTitle').textContent=t==='ingreso'?'Nuevo ingreso / cobro':'Nuevo gasto / pago';$('date').value=new Date().toISOString().slice(0,10);calc();window.scrollTo({top:250,behavior:'smooth'})}
+function hideForm(){$('formCard').classList.add('hidden')}
+async function saveMovement(){
+ if(!currentUser){$('saveStatus').textContent='Inicia sesión primero.';return}
+ const payload={user_id:currentUser.id,movement_date:$('date').value,type:$('type').value,party:fmtText($('party').value),concept:fmtText($('concept').value),base:num($('base').value),vat_rate:vatRate(),payment_method:$('payment').value,document_number:$('documentNo').value.trim().toUpperCase()||null,notes:$('notes').value.trim()||null};
+ if(!payload.concept){$('saveStatus').textContent='Escribe un concepto.';return}
+ $('saveStatus').textContent='Guardando…';
+ const {error}=await sb.from('rmc_movements').insert(payload);
+ if(error){$('saveStatus').textContent='No se pudo guardar: '+error.message;return}
+ $('saveStatus').textContent='Guardado y sincronizado.';
+ $('party').value='';$('concept').value='';$('base').value='0,00';$('documentNo').value='';$('notes').value='';calc();await loadMovements();setTimeout(hideForm,600);
+}
+async function loadMovements(){
+ $('syncStatus').textContent='Sincronizando…';
+ const {data,error}=await sb.from('rmc_movements').select('*').order('movement_date',{ascending:false}).order('id',{ascending:false});
+ if(error){$('syncStatus').textContent='Error de sincronización: '+error.message;return}
+ movements=data||[];$('syncStatus').textContent='Sincronizado · '+movements.length+' movimientos';render();
+}
+function filtered(){
+ let t=$('filterType').value,m=$('filterMonth').value;
+ return movements.filter(x=>(!t||x.type===t)&&(!m||String(x.movement_date).startsWith(m)));
+}
+function render(){
+ let data=filtered(),inc=0,exp=0,vin=0,vout=0;
+ $('rows').innerHTML=data.map(x=>{if(x.type==='ingreso'){inc+=+x.total;vin+=+x.vat_amount}else{exp+=+x.total;vout+=+x.vat_amount}
+ return `<tr><td>${x.movement_date.split('-').reverse().join('/')}</td><td class="${x.type==='ingreso'?'income':'expense'}">${x.type==='ingreso'?'Ingreso':'Gasto'}</td><td>${x.party||''}</td><td>${x.concept}</td><td>${money(x.base)}</td><td>${money(x.vat_amount)} (${Number(x.vat_rate).toLocaleString('es-ES')}%)</td><td><b>${money(x.total)}</b></td><td>${x.payment_method}</td><td><button class="danger" onclick="removeMovement(${x.id})">×</button></td></tr>`}).join('');
+ $('kIncome').textContent=money(inc);$('kExpense').textContent=money(exp);$('kResult').textContent=money(inc-exp);$('kVat').textContent=money(vin-vout);
+}
+async function removeMovement(id){if(!confirm('¿Eliminar este movimiento?'))return;const {error}=await sb.from('rmc_movements').delete().eq('id',id);if(error)alert(error.message);else loadMovements()}
+function exportCSV(){
+ let data=filtered(),headers=['fecha','tipo','cliente_proveedor','concepto','base','iva_porcentaje','iva','total','forma_pago','documento','notas'];
+ let esc=v=>'"'+String(v??'').replaceAll('"','""')+'"';
+ let csv='\ufeff'+headers.join(';')+'\n'+data.map(x=>[x.movement_date,x.type,x.party,x.concept,x.base,x.vat_rate,x.vat_amount,x.total,x.payment_method,x.document_number,x.notes].map(esc).join(';')).join('\n');
+ let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='RMC_Gestion_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+sb.channel('rmc-sync').on('postgres_changes',{event:'*',schema:'public',table:'rmc_movements'},()=>loadMovements()).subscribe();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+$('date').value=new Date().toISOString().slice(0,10);calc();
+(async()=>{const {data:{session}}=await sb.auth.getSession();if(session)await enterApp(session.user);})();
+sb.auth.onAuthStateChange((event,session)=>{if(session && !currentUser) enterApp(session.user);});
+
+</script>
+</body></html>
