@@ -1,4 +1,4 @@
-const CACHE='rmc-gestion-v4-logo';
+const CACHE='rmc-gestion-v5-iva-ocr';
 const ASSETS=['./','./index.html','./cuenta.html','./manifest.webmanifest','./rmc-logo.jpg'];
 const OLD_LOGO='<div><div class="brand">RMC<span>.</span></div><div class="tag">CLIMATIZACIÓN · INSTALACIÓN · MANTENIMIENTO</div></div>';
 const NEW_LOGO='<div><img class="rmc-logo" src="./rmc-logo.jpg?v=1" alt="RMC Climatización"></div>';
@@ -15,5 +15,5 @@ self.addEventListener('fetch',e=>{
   }));
   return;
  }
- e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request)));
+ e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request)));
 });
