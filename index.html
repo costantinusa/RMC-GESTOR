@@ -12,14 +12,14 @@
 header{background:linear-gradient(110deg,var(--navy) 0 72%,var(--orange) 72%);color:white;padding:18px 18px 20px;position:sticky;top:0;z-index:3}
 header h1{margin:0;font-size:22px} header p{margin:4px 0 0;font-size:12px;opacity:.9}
 main{max-width:1100px;margin:auto;padding:16px}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 9px rgba(0,0,0,.04)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px} .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 9px rgba(0,0,0,.04)}
 .kpi span{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:bold} .kpi b{display:block;font-size:22px;margin-top:5px;color:var(--navy)}
 .tabs{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap} button{border:0;border-radius:10px;padding:11px 14px;font-weight:bold;cursor:pointer} .primary{background:var(--navy);color:#fff} .orange{background:var(--orange);color:#fff} .ghost{background:#e9eef6;color:var(--navy)} .danger{background:#fbe9e9;color:var(--red)}
 .formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} label{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:bold;display:block;margin-bottom:5px}
 input,select,textarea{width:100%;border:1px solid #ccd5e2;border-radius:9px;padding:10px;font:14px Arial;background:white} textarea{min-height:70px}
 .full{grid-column:1/-1} .half{grid-column:span 2} .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
-.tablewrap{overflow:auto} table{width:100%;border-collapse:collapse;min-width:800px} th{background:var(--navy);color:#fff;text-align:left;padding:10px;font-size:12px} td{padding:10px;border-bottom:1px solid var(--line);font-size:13px} .income{color:var(--green);font-weight:bold} .expense{color:var(--red);font-weight:bold}
-.status{font-size:12px;color:var(--muted);margin-top:8px} .hidden{display:none!important}
+.tablewrap{overflow:auto} table{width:100%;border-collapse:collapse;min-width:900px} th{background:var(--navy);color:#fff;text-align:left;padding:10px;font-size:12px} td{padding:10px;border-bottom:1px solid var(--line);font-size:13px} .income{color:var(--green);font-weight:bold} .expense{color:var(--red);font-weight:bold}
+.status{font-size:12px;color:var(--muted);margin-top:8px}.scanbox{border:1px dashed #b9c5d6;border-radius:10px;padding:10px;background:#f8fafc}.legalnote{font-size:11px;color:#6d778a;line-height:1.4;margin-top:5px} .hidden{display:none!important}
 @media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){main{padding:10px}.grid{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:1fr}.half,.full{grid-column:1} header{position:relative}}
 </style>
@@ -43,6 +43,8 @@ input,select,textarea{width:100%;border:1px solid #ccd5e2;border-radius:9px;padd
  <div class="card kpi"><span>Gastos</span><b id="kExpense">0,00 €</b></div>
  <div class="card kpi"><span>Resultado</span><b id="kResult">0,00 €</b></div>
  <div class="card kpi"><span>IVA a liquidar</span><b id="kVat">0,00 €</b></div>
+ <div class="card kpi"><span>Ingresos con IVA</span><b id="kIncomeVat">0,00 €</b></div>
+ <div class="card kpi"><span>Ingresos sin IVA</span><b id="kIncomeNoVat">0,00 €</b></div>
 </section>
 
 <div class="tabs">
@@ -60,13 +62,16 @@ input,select,textarea{width:100%;border:1px solid #ccd5e2;border-radius:9px;padd
   <div><label>Tipo</label><select id="type"><option value="ingreso">Ingreso / Cobro</option><option value="gasto">Gasto / Pago</option></select></div>
   <div class="half"><label>Cliente / Proveedor</label><input id="party" placeholder="Nombre o empresa"></div>
   <div class="full"><label>Concepto</label><input id="concept" placeholder="Ej.: Reparación aire acondicionado / compra de material"></div>
-  <div><label>Base imponible €</label><input id="base" inputmode="decimal" value="0,00"></div>
+  <div><label>Base / Importe €</label><input id="base" inputmode="decimal" value="0,00"></div>
+  <div><label>Tratamiento IVA</label><select id="vatTreatment"><option value="con_iva">Con IVA</option><option value="exento">Exento de IVA</option><option value="no_sujeto">No sujeto a IVA</option></select><div class="legalnote">El cobro en efectivo no elimina por sí mismo la obligación de IVA.</div></div>
   <div><label>IVA %</label><select id="vat"><option>21</option><option>10</option><option>4</option><option>0</option><option value="custom">Otro…</option></select></div>
   <div id="customVatBox" class="hidden"><label>IVA personalizado %</label><input id="customVat" inputmode="decimal" value="21"></div>
   <div><label>IVA €</label><input id="vatAmount" readonly></div>
   <div><label>Total €</label><input id="total" readonly></div>
   <div><label>Forma de cobro / pago</label><select id="payment"><option value="transferencia">Transferencia bancaria</option><option value="tarjeta">Tarjeta crédito/débito</option><option value="efectivo">Efectivo</option><option value="otro">Otro</option></select></div>
   <div><label>Nº factura / documento</label><input id="documentNo" placeholder="Opcional"></div>
+  <div id="vatReasonBox" class="full hidden"><label>Motivo de exención / no sujeción</label><input id="vatReason" placeholder="Indica el motivo fiscal cuando corresponda"></div>
+  <div id="receiptBox" class="full scanbox hidden"><label>Foto de factura / ticket de gasto</label><input id="receiptFile" type="file" accept="image/*" capture="environment"><div id="ocrStatus" class="status">Haz una foto o selecciona una imagen. RMC intentará leer proveedor, fecha, base, IVA y total.</div></div>
   <div class="full"><label>Notas</label><textarea id="notes" placeholder="Opcional"></textarea></div>
  </div>
  <div class="actions"><button class="ghost" onclick="hideForm()">Cancelar</button><button class="primary" onclick="saveMovement()">Guardar movimiento</button></div>
@@ -82,13 +87,14 @@ input,select,textarea{width:100%;border:1px solid #ccd5e2;border-radius:9px;padd
   </div>
  </div>
  <div class="tablewrap" style="margin-top:10px">
- <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Cliente / proveedor</th><th>Concepto</th><th>Base</th><th>IVA</th><th>Total</th><th>Medio</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+ <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Cliente / proveedor</th><th>Concepto</th><th>Base</th><th>Tratamiento</th><th>IVA</th><th>Total</th><th>Medio</th><th></th></tr></thead><tbody id="rows"></tbody></table>
  </div>
  <div id="syncStatus" class="status">Conectando con RMC Cloud…</div>
 </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 const SUPABASE_URL="https://gbcrptmxxoztuqlslyhl.supabase.co";
 const SUPABASE_KEY="sb_publishable_Y2Ep_DgA9Nw43ZMAuIW9fw_3Gw4QIXj";
@@ -117,20 +123,21 @@ const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(Number(n||0));
 const num=v=>{let s=String(v??'').trim().replace(/\s/g,'').replace(/\./g,'').replace(',','.');let n=Number(s);return Number.isFinite(n)?n:0};
 const fmtText=s=>String(s||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('es-ES').replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
-function vatRate(){return $('vat').value==='custom'?num($('customVat').value):num($('vat').value)}
+function vatRate(){return $('vatTreatment').value==='con_iva'?($('vat').value==='custom'?num($('customVat').value):num($('vat').value)):0}
+function applyVatTreatment(){const taxable=$('vatTreatment').value==='con_iva';$('vat').disabled=!taxable;$('customVat').disabled=!taxable;$('vatReasonBox').classList.toggle('hidden',taxable);calc()}
 function calc(){let b=num($('base').value),v=vatRate();$('vatAmount').value=money(b*v/100);$('total').value=money(b*(1+v/100));}
-$('base').addEventListener('input',calc);$('vat').addEventListener('change',()=>{$('customVatBox').classList.toggle('hidden',$('vat').value!=='custom');calc()});$('customVat').addEventListener('input',calc);
-function showForm(t){$('formCard').classList.remove('hidden');$('type').value=t;$('formTitle').textContent=t==='ingreso'?'Nuevo ingreso / cobro':'Nuevo gasto / pago';$('date').value=new Date().toISOString().slice(0,10);calc();window.scrollTo({top:250,behavior:'smooth'})}
+$('base').addEventListener('input',calc);$('vat').addEventListener('change',()=>{$('customVatBox').classList.toggle('hidden',$('vat').value!=='custom');calc()});$('customVat').addEventListener('input',calc);$('vatTreatment').addEventListener('change',applyVatTreatment);
+function showForm(t){$('formCard').classList.remove('hidden');$('type').value=t;$('formTitle').textContent=t==='ingreso'?'Nuevo ingreso / cobro':'Nuevo gasto / pago';$('receiptBox').classList.toggle('hidden',t!=='gasto');$('date').value=new Date().toISOString().slice(0,10);applyVatTreatment();window.scrollTo({top:250,behavior:'smooth'})}
 function hideForm(){$('formCard').classList.add('hidden')}
 async function saveMovement(){
  if(!currentUser){$('saveStatus').textContent='Inicia sesión primero.';return}
- const payload={user_id:currentUser.id,movement_date:$('date').value,type:$('type').value,party:fmtText($('party').value),concept:fmtText($('concept').value),base:num($('base').value),vat_rate:vatRate(),payment_method:$('payment').value,document_number:$('documentNo').value.trim().toUpperCase()||null,notes:$('notes').value.trim()||null};
+ const payload={user_id:currentUser.id,movement_date:$('date').value,type:$('type').value,party:fmtText($('party').value),concept:fmtText($('concept').value),base:num($('base').value),vat_rate:vatRate(),vat_treatment:$('vatTreatment').value,vat_reason:$('vatReason').value.trim()||null,payment_method:$('payment').value,document_number:$('documentNo').value.trim().toUpperCase()||null,notes:$('notes').value.trim()||null,receipt_text:window.lastReceiptText||null,receipt_filename:window.lastReceiptFilename||null};
  if(!payload.concept){$('saveStatus').textContent='Escribe un concepto.';return}
  $('saveStatus').textContent='Guardando…';
  const {error}=await sb.from('rmc_movements').insert(payload);
  if(error){$('saveStatus').textContent='No se pudo guardar: '+error.message;return}
  $('saveStatus').textContent='Guardado y sincronizado.';
- $('party').value='';$('concept').value='';$('base').value='0,00';$('documentNo').value='';$('notes').value='';calc();await loadMovements();setTimeout(hideForm,600);
+ $('party').value='';$('concept').value='';$('base').value='0,00';$('documentNo').value='';$('notes').value='';$('vatTreatment').value='con_iva';$('vatReason').value='';window.lastReceiptText='';window.lastReceiptFilename='';$('receiptFile').value='';applyVatTreatment();await loadMovements();setTimeout(hideForm,600);
 }
 async function loadMovements(){
  $('syncStatus').textContent='Sincronizando…';
@@ -143,21 +150,28 @@ function filtered(){
  return movements.filter(x=>(!t||x.type===t)&&(!m||String(x.movement_date).startsWith(m)));
 }
 function render(){
- let data=filtered(),inc=0,exp=0,vin=0,vout=0;
- $('rows').innerHTML=data.map(x=>{if(x.type==='ingreso'){inc+=+x.total;vin+=+x.vat_amount}else{exp+=+x.total;vout+=+x.vat_amount}
- return `<tr><td>${x.movement_date.split('-').reverse().join('/')}</td><td class="${x.type==='ingreso'?'income':'expense'}">${x.type==='ingreso'?'Ingreso':'Gasto'}</td><td>${x.party||''}</td><td>${x.concept}</td><td>${money(x.base)}</td><td>${money(x.vat_amount)} (${Number(x.vat_rate).toLocaleString('es-ES')}%)</td><td><b>${money(x.total)}</b></td><td>${x.payment_method}</td><td><button class="danger" onclick="removeMovement(${x.id})">×</button></td></tr>`}).join('');
- $('kIncome').textContent=money(inc);$('kExpense').textContent=money(exp);$('kResult').textContent=money(inc-exp);$('kVat').textContent=money(vin-vout);
+ let data=filtered(),inc=0,exp=0,vin=0,vout=0,incVat=0,incNoVat=0;
+ $('rows').innerHTML=data.map(x=>{if(x.type==='ingreso'){inc+=+x.total;if(x.vat_treatment==='con_iva')incVat+=+x.total;else incNoVat+=+x.total;vin+=+x.vat_amount}else{exp+=+x.total;vout+=+x.vat_amount}
+ const treatment=x.vat_treatment==='exento'?'Exento':x.vat_treatment==='no_sujeto'?'No sujeto':'Con IVA';
+ return `<tr><td>${x.movement_date.split('-').reverse().join('/')}</td><td class="${x.type==='ingreso'?'income':'expense'}">${x.type==='ingreso'?'Ingreso':'Gasto'}</td><td>${x.party||''}</td><td>${x.concept}</td><td>${money(x.base)}</td><td>${treatment}</td><td>${money(x.vat_amount)} (${Number(x.vat_rate).toLocaleString('es-ES')}%)</td><td><b>${money(x.total)}</b></td><td>${x.payment_method}</td><td><button class="danger" onclick="removeMovement(${x.id})">×</button></td></tr>`}).join('');
+ $('kIncome').textContent=money(inc);$('kExpense').textContent=money(exp);$('kResult').textContent=money(inc-exp);$('kVat').textContent=money(vin-vout);$('kIncomeVat').textContent=money(incVat);$('kIncomeNoVat').textContent=money(incNoVat);
 }
 async function removeMovement(id){if(!confirm('¿Eliminar este movimiento?'))return;const {error}=await sb.from('rmc_movements').delete().eq('id',id);if(error)alert(error.message);else loadMovements()}
 function exportCSV(){
- let data=filtered(),headers=['fecha','tipo','cliente_proveedor','concepto','base','iva_porcentaje','iva','total','forma_pago','documento','notas'];
+ let data=filtered(),headers=['fecha','tipo','cliente_proveedor','concepto','base','tratamiento_iva','motivo_iva','iva_porcentaje','iva','total','forma_pago','documento','notas'];
  let esc=v=>'"'+String(v??'').replaceAll('"','""')+'"';
- let csv='\ufeff'+headers.join(';')+'\n'+data.map(x=>[x.movement_date,x.type,x.party,x.concept,x.base,x.vat_rate,x.vat_amount,x.total,x.payment_method,x.document_number,x.notes].map(esc).join(';')).join('\n');
+ let csv='\ufeff'+headers.join(';')+'\n'+data.map(x=>[x.movement_date,x.type,x.party,x.concept,x.base,x.vat_treatment,x.vat_reason,x.vat_rate,x.vat_amount,x.total,x.payment_method,x.document_number,x.notes].map(esc).join(';')).join('\n');
  let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='RMC_Gestion_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 }
+
+window.lastReceiptText='';window.lastReceiptFilename='';
+function parseMoneyText(v){if(!v)return 0;let s=String(v).replace(/[^0-9.,]/g,'');if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(',','.');return Number(s)||0}
+function extractReceiptFields(text){const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);let total=0,base=0,iva=0,rate=21,date='';const amountRx=/([0-9]{1,6}(?:[.,][0-9]{2}))/g;for(const line of lines){const u=line.toUpperCase();const vals=[...line.matchAll(amountRx)].map(m=>parseMoneyText(m[1]));if(!vals.length)continue;if(/TOTAL|IMPORTE TOTAL|A PAGAR/.test(u))total=Math.max(total,...vals);if(/BASE IMPONIBLE|BASE IVA|BASE/.test(u))base=Math.max(base,...vals);if(/IVA/.test(u)&&!/CIF|NIF/.test(u)){iva=Math.max(iva,...vals.filter(v=>v<Math.max(total||999999,999999)));const rm=u.match(/IVA\s*(?:AL)?\s*(\d{1,2}(?:[.,]\d+)?)\s*%/);if(rm)rate=parseMoneyText(rm[1])}}if(!total){const all=[...text.matchAll(amountRx)].map(m=>parseMoneyText(m[1]));total=all.length?Math.max(...all):0}if(!base&&total&&iva)base=Math.max(0,total-iva);if(!base&&total&&rate)base=total/(1+rate/100);if(!iva&&base&&total)iva=Math.max(0,total-base);const dm=text.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](20\d{2})\b/);if(dm)date=`${dm[3]}-${String(dm[2]).padStart(2,'0')}-${String(dm[1]).padStart(2,'0')}`;const supplier=lines.find(l=>l.length>2&&!/FACTURA|TICKET|CIF|NIF|FECHA|TOTAL|IVA|BASE/i.test(l))||'';return {supplier,total,base,iva,rate,date}}
+async function scanReceipt(file){if(!file)return;$('ocrStatus').textContent='Leyendo imagen… puede tardar unos segundos.';try{const result=await Tesseract.recognize(file,'spa',{logger:m=>{if(m.status==='recognizing text')$('ocrStatus').textContent=`Leyendo factura… ${Math.round((m.progress||0)*100)} %`;}});const text=result.data.text||'';window.lastReceiptText=text;window.lastReceiptFilename=file.name||'foto';const f=extractReceiptFields(text);if(f.supplier)$('party').value=fmtText(f.supplier);if(f.date)$('date').value=f.date;if(f.base)$('base').value=String(f.base.toFixed(2)).replace('.',',');if(f.rate){$('vatTreatment').value='con_iva';$('vat').value=[21,10,4,0].includes(Math.round(f.rate))?String(Math.round(f.rate)):'custom';if($('vat').value==='custom')$('customVat').value=String(f.rate).replace('.',',');}if(!$('concept').value)$('concept').value='Compra / gasto según factura';applyVatTreatment();calc();$('ocrStatus').textContent=`Lectura terminada. Comprueba los datos antes de guardar. Total detectado: ${money(f.total)}.`;}catch(e){$('ocrStatus').textContent='No se pudo leer la imagen automáticamente. Puedes introducir los datos manualmente.';}}
+$('receiptFile').addEventListener('change',e=>scanReceipt(e.target.files&&e.target.files[0]));
 sb.channel('rmc-sync').on('postgres_changes',{event:'*',schema:'public',table:'rmc_movements'},()=>loadMovements()).subscribe();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
-$('date').value=new Date().toISOString().slice(0,10);calc();
+$('date').value=new Date().toISOString().slice(0,10);applyVatTreatment();
 (async()=>{const {data:{session}}=await sb.auth.getSession();if(session)await enterApp(session.user);})();
 sb.auth.onAuthStateChange((event,session)=>{if(session && !currentUser) enterApp(session.user);});
 
